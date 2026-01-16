@@ -84,7 +84,16 @@ cargo build --release
 - `get_staged_diff`: 获取暂存区差异并生成提交信息草稿。
 - `execute_commit`: 执行最终的提交操作。
 
+## 使用方法 (Usage)
+
+在支持 MCP 的客户端中，你可以通过提示词让 AI 协助你管理 Git 提交，例如：
+
+```txt
+使用 git_summarizer 进行提交
+```
+
 ## 开发
+
 
 本项目基于 `git2-rs` 库直接与 Git 底层交互，不依赖系统安装的 `git` 命令行工具（但在配置用户身份时仍需 `git config`）。
 
