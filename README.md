@@ -16,7 +16,6 @@
 ### 直接下载 (Download Binaries)
 
 您可以从 [GitHub Releases](https://github.com/your-username/your-repo/releases) 页面下载预编译好的二进制文件：
-- **Windows (x86_64)**: `git-summarizer-windows-amd64.exe`
 - **Linux (x86_64)**: `git-summarizer-linux-amd64`
 - **Linux (arm64)**: `git-summarizer-linux-arm64`
 
@@ -46,7 +45,7 @@ cargo build --release
 {
   "mcpServers": {
     "git-summarizer": {
-      "command": "/path/to/mcp-git-summarizer/target/release/mcp-git-summarizer",
+      "command": "/path/to/mcp-git-summarizer",
       "options": {
         "commitFormat": [
           "<type>[optional scope]: <english description>",
