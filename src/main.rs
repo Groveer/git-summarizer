@@ -119,8 +119,8 @@ async fn main() -> Result<()> {
                 let tools = vec![
 
                     Tool {
-                        name: "list_unstaged".to_string(),
-                        description: "列出当前项目中所有未暂存（unstaged）或未跟踪（untracked）的文件。".to_string(),
+                        name: "check_files_status".to_string(),
+                        description: "检查当前 git 状态，包括已暂存和未暂存的文件，并根据状态返回下一步工作流建议。".to_string(),
                         input_schema: json!({
                             "type": "object",
                             "properties": {}
@@ -152,8 +152,12 @@ async fn main() -> Result<()> {
                                - 如果无法确定单号，**必须**询问用户提供。\n\
                                - 如果用户提供了单号，将其填入提交信息。\n\
                                - 如果用户明确表示没有单号，**必须从最终提交信息中删除整个 PMS 行**。\n\
-                            3. 用户预览与修改：展示草稿，询问用户确认。\n\
-                            4. 严禁直接提交：必须得到用户明确确认后才能执行 execute_commit。\n\n\
+                            3. 处理 Issue 单号：\n\
+                               - 如果无法确定单号，**必须**询问用户提供。\n\
+                               - 如果用户提供了单号，将其填入提交信息。\n\
+                               - 如果用户明确表示没有单号，**必须从最终提交信息中删除整个 Issue 行**。\n\
+                            4. 用户预览与修改：展示草稿，询问用户确认。\n\
+                            5. 严禁直接提交：必须得到用户明确确认后才能执行 execute_commit。\n\n\
                             ### 提交格式要求：\n{}\n\n\
                             ### 额外约束：\n{}",
 
@@ -186,15 +190,19 @@ async fn main() -> Result<()> {
                 let params: CallToolParams =
                     serde_json::from_value(request.params.clone().unwrap_or_default())?;
                 let tool_result = match params.name.as_str() {
-                    "list_unstaged" => match GitHandler::get_unstaged_files() {
-                        Ok(files) => {
-                            let text = if files.is_empty() {
-                                "暂无未暂存的文件。".to_string()
-                            } else {
-                                format!(
-                                    "未暂存的文件：\n{}\n\n工作流提醒：\n1. 请向用户展示上述文件列表。\n2. **必须**请用户确认哪些文件需要被暂存（git add）。\n3. 只有在用户明确指定文件后，才可调用 `stage_files`。",
-                                    files.join("\n")
-                                )
+                    "check_files_status" => match GitHandler::check_files_status() {
+                        Ok((has_staged, unstaged_files)) => {
+                            let text = match (has_staged, unstaged_files.is_empty()) {
+                                (false, true) => "当前没有已暂存或未暂存的文件。请先进行一些修改后再尝试提交。".to_string(),
+                                (false, false) => format!(
+                                    "未暂存的文件：\n{}\n\n工作流提醒：\n请向用户展示上述文件列表。**必须**请用户确认哪些文件需要被暂存（git add）。只有在用户明确指定文件后，才可调用 `stage_files`。",
+                                    unstaged_files.join("\n")
+                                ),
+                                (true, false) => format!(
+                                    "已暂存的文件存在。未暂存的文件：\n{}\n\n工作流提醒：\n1. 已有已暂存的文件，可以直接进行提交。\n2. 询问用户是否需要暂存未暂存的文件。\n3. 如果用户不需暂存更多文件，直接调用 `get_staged_diff`。\n4. 如果用户需要暂存更多文件，调用 `stage_files`。",
+                                    unstaged_files.join("\n")
+                                ),
+                                (true, true) => "已暂存的文件存在，且没有未暂存的文件。请直接调用 `get_staged_diff` 获取变更差异并生成提交信息草稿。".to_string(),
                             };
 
                             json!({ "content": [{ "type": "text", "text": text }] })
@@ -225,7 +233,7 @@ async fn main() -> Result<()> {
                     "get_staged_diff" => match GitHandler::get_staged_diff() {
                         Ok(diff) => {
                             let text = format!(
-                                "{}\n\n工作流提醒：\n1. 请根据上述差异总结一个提交信息草稿。\n2. **必须**询问用户确认 PMS 单号（格式如 BUG-123 或 TASK-456）。\n3. 展示最终提交信息并请求用户明确确认。\n4. **重要**：如果用户对信息进行了修改或提出了反馈，必须重新展示完整的修改后信息并再次请求确认。\n5. 只有在用户对最终展示的信息表示明确认可（如“可以提交”）后，才可调用 `execute_commit`。",
+                                "{}\n\n工作流提醒：\n1. 请根据上述差异总结一个提交信息草稿。\n2. **必须**询问用户确认 PMS 单号（格式如 BUG-123 或 TASK-456）。\n3. **必须**询问用户确认 GitHub Issue 号码（格式如 #123）。\n4. 展示最终提交信息并请求用户明确确认。\n5. **重要**：如果用户对信息进行了修改或提出了反馈，必须重新展示完整的修改后信息并再次请求确认。\n6. 只有在用户对最终展示的信息表示明确认可（如\"可以提交\"）后，才可调用 `execute_commit`。",
                                 diff
                             );
                             json!({ "content": [{ "type": "text", "text": text }] })

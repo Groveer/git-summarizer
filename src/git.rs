@@ -50,26 +50,38 @@ impl GitHandler {
         Ok(format!("Commit successful: {}", commit_id))
     }
 
-    pub fn get_unstaged_files() -> Result<Vec<String>> {
+    pub fn check_files_status() -> Result<(bool, Vec<String>)> {
         let repo = Repository::open(".")?;
         let mut opts = git2::StatusOptions::new();
         opts.include_untracked(true).recurse_untracked_dirs(true);
         let statuses = repo.statuses(Some(&mut opts))?;
 
-        let mut files = Vec::new();
+        let mut has_staged = false;
+        let mut unstaged_files = Vec::new();
+
         for entry in statuses.iter() {
             let status = entry.status();
+
+            if status.is_index_new()
+                || status.is_index_modified()
+                || status.is_index_deleted()
+                || status.is_index_renamed()
+            {
+                has_staged = true;
+            }
+
             if status.is_wt_new()
                 || status.is_wt_modified()
                 || status.is_wt_deleted()
                 || status.is_wt_renamed()
             {
                 if let Some(path) = entry.path() {
-                    files.push(path.to_string());
+                    unstaged_files.push(path.to_string());
                 }
             }
         }
-        Ok(files)
+
+        Ok((has_staged, unstaged_files))
     }
 
     pub fn stage_files(paths: Vec<String>) -> Result<String> {
@@ -83,5 +95,4 @@ impl GitHandler {
         index.write()?;
         Ok("Files staged successfully".to_string())
     }
-
 }
