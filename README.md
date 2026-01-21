@@ -56,6 +56,7 @@ cargo build --release
           "",
           "Log: [short description of the change use chinese language]",
           "PMS: <BUG-number> or <TASK-number> (必须包含 'BUG-' 或 'TASK-' 前缀。如果没有，必须询问用户；若用户明确不提供，则从提交信息中删除此行)",
+          "Issue: Fixes #xxx (所修复的bug对应的github issue，其中 \"Fixes #xxx\" 是github关闭issue的规则，此处内容只需要满足github的要求即可。",
           "Influence: Explain in Chinese the potential impact of this submission."
         ],
         "extraConstraints": [
