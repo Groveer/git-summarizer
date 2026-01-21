@@ -27,7 +27,7 @@
 
 ```bash
 # 克隆项目
-git clone <your-repo-url>
+git clone https://github.com/Groveer/mcp-git-summarizer
 cd mcp-git-summarizer
 
 # 编译 release 版本
